@@ -1,2 +1,2 @@
 # Software-Renderer
-Handmade software renderer
+Handmade Software Renderer
