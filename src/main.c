@@ -40,7 +40,7 @@ static void DrawLine(struct Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 			Swap(&v0.y, &v1.y);
 		}
 		for (s32 x = v0.x; x <= v1.x; x++) {
-			f32 t = (f32)(x - v0.x) / (f32)(v1.x - v0.x);
+			f32 t = (x - v0.x) / (v1.x - v0.x);
 			s32 y = (s32)(v0.y + (v1.y - v0.y) * t);
 			DrawPixel(buffer, x, y, colour);
 		}
@@ -50,7 +50,7 @@ static void DrawLine(struct Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 			Swap(&v0.x, &v1.x);
 		}
 		for (s32 y = v0.y; y <= v1.y; y++) {
-			f32 t = (f32)(y - v0.y) / (f32)(v1.y - v0.y);
+			f32 t = (y - v0.y) / (v1.y - v0.y);
 			s32 x = (s32)(v0.x + (v1.x - v0.x) * t);
 			DrawPixel(buffer, x, y, colour);
 		}
@@ -95,7 +95,7 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 	return result;
 }
 
-static int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
 	running = true;
 
