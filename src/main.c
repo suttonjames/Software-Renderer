@@ -20,7 +20,7 @@ static void Swap(float* xp, float* yp)
 	*yp = temp;
 }
 
-static void DrawPixel(struct Backbuffer* buffer, s32 x, s32 y, vec3 colour)
+static void DrawPixel(Backbuffer* buffer, s32 x, s32 y, vec3 colour)
 {
 	if (x < 0 || y < 0 || x >= buffer->width || y >= buffer->height) 
 		return;
@@ -29,7 +29,7 @@ static void DrawPixel(struct Backbuffer* buffer, s32 x, s32 y, vec3 colour)
 	*pixel = (((s32)colour.r << 16) | ((s32)colour.g << 8) | (s32)colour.b);
 }
 
-static void DrawLine(struct Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
+static void DrawLine(Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 {
 	s32 dx = abs(v1.x - v0.x);
 	s32 dy = abs(v1.y - v0.y);
@@ -55,6 +55,13 @@ static void DrawLine(struct Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 			DrawPixel(buffer, x, y, colour);
 		}
 	}
+}
+
+void DrawTriangle(Backbuffer* buffer, vec2 v0, vec2 v1, vec2 v2, vec3 colour)
+{
+	DrawLine(buffer, v0, v1, colour);
+	DrawLine(buffer, v1, v2, colour);
+	DrawLine(buffer, v2, v0, colour);
 }
 
 static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
@@ -84,7 +91,7 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 
 			backbuffer.bitmapInfo.bmiHeader.biSize = sizeof(backbuffer.bitmapInfo.bmiHeader);
 			backbuffer.bitmapInfo.bmiHeader.biWidth = backbuffer.width;
-			backbuffer.bitmapInfo.bmiHeader.biHeight = -backbuffer.height; // top-down
+			backbuffer.bitmapInfo.bmiHeader.biHeight = -backbuffer.height;
 			backbuffer.bitmapInfo.bmiHeader.biPlanes = 1;
 			backbuffer.bitmapInfo.bmiHeader.biBitCount = 32;
 			backbuffer.bitmapInfo.bmiHeader.biCompression = BI_RGB;
@@ -142,6 +149,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 50), Vec3f(0.f, 255.f, 0.f));
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(10, 30), Vec3f(255.f, 0.f, 0.f));
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 10), Vec3f(255.f, 255.f, 255.f));
+
+		DrawTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
+		DrawTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
+		DrawTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
 		
 		StretchDIBits(device_context, 
 			0, 0, 
@@ -151,7 +162,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			backbuffer.memory, 
 			&backbuffer.bitmapInfo, 
 			DIB_RGB_COLORS, 
-			SRCCOPY);
+			SRCCOPY
+		);
 	}
 	return 0;
 }
