@@ -104,6 +104,33 @@ inline vec4 Vec4f(f32 x, f32 y, f32 z, f32 w)
 	return result;
 }
 
+inline vec2 Vec2Add(vec2 left, vec2 right)
+{
+	vec2 result;
+	result.x = left.x + right.x;
+	result.y = left.y + right.y;
+	return result;
+}
+
+inline vec3 Vec3Add(vec3 left, vec3 right)
+{
+	vec3 result;
+	result.x = left.x + right.x;
+	result.y = left.y + right.y;
+	result.z = left.z + right.z;
+	return result;
+}
+
+inline vec4 Vec4Add(vec4 left, vec4 right)
+{
+	vec4 result;
+	result.x = left.x + right.x;
+	result.y = left.y + right.y;
+	result.z = left.z + right.z;
+	result.w = left.w + right.w;
+	return result;
+}
+
 inline vec2 Vec2Minus(vec2 left, vec2 right)
 {
 	vec2 result;
@@ -111,4 +138,78 @@ inline vec2 Vec2Minus(vec2 left, vec2 right)
 	result.y = left.y - right.y;
 	return result;
 }
+
+inline vec3 Vec3Minus(vec3 left, vec3 right)
+{
+	vec3 result;
+	result.x = left.x - right.x;
+	result.y = left.y - right.y;
+	result.z = left.z - right.z;
+	return result;
+}
+
+inline vec4 Vec4Minus(vec4 left, vec4 right)
+{
+	vec4 result;
+	result.x = left.x - right.x;
+	result.y = left.y - right.y;
+	result.z = left.z - right.z;
+	result.w = left.w - right.w;
+	return result;
+}
+
+inline vec2 Vec2Multiply(vec2 left, vec2 right)
+{
+	vec2 result;
+	result.x = left.x * right.x;
+	result.y = left.y * right.y;
+	return result;
+}
+
+inline vec3 Vec3Multiply(vec3 left, vec3 right)
+{
+	vec3 result;
+	result.x = left.x * right.x;
+	result.y = left.y * right.y;
+	result.z = left.z * right.z;
+	return result;
+}
+
+inline vec4 Vec4Multiply(vec4 left, vec4 right)
+{
+	vec4 result;
+	result.x = left.x * right.x;
+	result.y = left.y * right.y;
+	result.z = left.z * right.z;
+	result.w = left.w * right.w;
+	return result;
+}
+
+inline vec2 Vec2Divide(vec2 left, vec2 right)
+{
+	vec2 result;
+	result.x = left.x / right.x;
+	result.y = left.y / right.y;
+	return result;
+}
+
+inline vec3 Vec3Divide(vec3 left, vec3 right)
+{
+	vec3 result;
+	result.x = left.x / right.x;
+	result.y = left.y / right.y;
+	result.z = left.z / right.z;
+	return result;
+}
+
+inline vec4 Vec4Divide(vec4 left, vec4 right)
+{
+	vec4 result;
+	result.x = left.x / right.x;
+	result.y = left.y / right.y;
+	result.z = left.z / right.z;
+	result.w = left.w / right.w;
+	return result;
+}
+
 #endif 
