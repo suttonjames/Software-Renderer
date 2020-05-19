@@ -50,3 +50,13 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+/x64/Debug
+/.vs/Software-Renderer/v16/ipch/AutoPCH/1615be0337caf719
+/.vs/Software-Renderer/v16/ipch/AutoPCH/e4d0631eebeacc52
+/.vs/Software-Renderer/v16/.suo
+/.vs/Software-Renderer/v16/Browse.VC.db
+/.vs/Software-Renderer/v16/Browse.VC.opendb
+/Software-Renderer.vcxproj.user
+/Software-Renderer.vcxproj.filters
+/Software-Renderer.vcxproj
+/Software-Renderer.sln

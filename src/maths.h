@@ -103,4 +103,12 @@ inline vec4 Vec4f(f32 x, f32 y, f32 z, f32 w)
 	result.w = w;
 	return result;
 }
+
+inline vec2 Vec2Minus(vec2 left, vec2 right)
+{
+	vec2 result;
+	result.x = left.x - right.x;
+	result.y = left.y - right.y;
+	return result;
+}
 #endif 

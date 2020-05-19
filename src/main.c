@@ -13,9 +13,9 @@ typedef struct Backbuffer {
 static Backbuffer backbuffer;
 static b32 running;
 
-static void Swap(float* xp, float* yp)
+static void Swap(f32* xp, f32* yp)
 {
-	float temp = *xp;
+	f32 temp = *xp;
 	*xp = *yp;
 	*yp = temp;
 }
@@ -57,12 +57,45 @@ static void DrawLine(Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 	}
 }
 
-void DrawTriangle(Backbuffer* buffer, vec2 v0, vec2 v1, vec2 v2, vec3 colour)
+static void DrawTriangle(Backbuffer* buffer, vec2 v0, vec2 v1, vec2 v2, vec3 colour)
 {
 	DrawLine(buffer, v0, v1, colour);
 	DrawLine(buffer, v1, v2, colour);
 	DrawLine(buffer, v2, v0, colour);
 }
+
+static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
+{
+	vec2 AB = Vec2Minus(b, a);
+	vec2 AC = Vec2Minus(c, a);
+	vec2 AP = Vec2Minus(p, a);
+	f32 s, t;
+
+	s32 denom = AB.x * AC.y - AB.y * AC.x;
+	if (denom == 0) 
+		return false;
+
+	s = (AC.y * AP.x - AC.x * AP.y) / (f32)denom;
+	t = (AB.x * AP.y - AB.y * AP.x) / (f32)denom;
+
+	*sp = s;
+	*tp = t;
+
+	return (s >= 0 && t >= 0 && s + t <= 1);
+}
+
+static void FillTriangle(Backbuffer* buffer, vec2 point0, vec2 point1, vec2 point2, vec3 color)
+{
+	for (s32 j = 0; j < buffer->height; j++) {
+		for (s32 i = 0; i < buffer->width; i++) {
+			f32 s, t;
+			vec2 point = Vec2i(i, j);
+			if (InTriangle(point0, point1, point2, point, &s, &t)) 
+				DrawPixel(buffer, point.x, point.y, color);
+		}
+	}
+}
+
 
 static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -150,9 +183,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(10, 30), Vec3f(255.f, 0.f, 0.f));
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 10), Vec3f(255.f, 255.f, 255.f));
 
-		DrawTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
-		DrawTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
-		DrawTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
+		//DrawTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
+		//DrawTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
+		//DrawTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
+
+		FillTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
+		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
+		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
+
 		
 		StretchDIBits(device_context, 
 			0, 0, 
