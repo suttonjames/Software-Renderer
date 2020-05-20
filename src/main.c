@@ -84,14 +84,19 @@ static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
 	return (s >= 0 && t >= 0 && s + t <= 1);
 }
 
-static void FillTriangle(Backbuffer* buffer, vec2 point0, vec2 point1, vec2 point2, vec3 color)
+static void FillTriangle(Backbuffer* buffer, vec2 point0, vec2 point1, vec2 point2, vec3 colour0, vec3 colour1, vec3 colour2)
 {
 	for (s32 j = 0; j < buffer->height; j++) {
 		for (s32 i = 0; i < buffer->width; i++) {
 			f32 s, t;
 			vec2 point = Vec2i(i, j);
-			if (InTriangle(point0, point1, point2, point, &s, &t)) 
-				DrawPixel(buffer, point.x, point.y, color);
+			if (InTriangle(point0, point1, point2, point, &s, &t)) {
+				vec3 colour;
+				colour.r = ((1.0f - s - t) * colour0.r + s * colour1.r + t * colour2.r);
+				colour.g = ((1.0f - s - t) * colour0.g + s * colour1.g + t * colour2.g);
+				colour.b = ((1.0f - s - t) * colour0.b + s * colour1.b + t * colour2.b);
+				DrawPixel(buffer, point.x, point.y, colour);
+			}
 		}
 	}
 }
@@ -187,9 +192,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		//DrawTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
 		//DrawTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
 
-		FillTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
-		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
-		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
+		FillTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 0.f, 255.f));
+		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f));
+		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f));
 
 		
 		StretchDIBits(device_context, 
