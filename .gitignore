@@ -60,3 +60,5 @@ dkms.conf
 /Software-Renderer.vcxproj.filters
 /Software-Renderer.vcxproj
 /Software-Renderer.sln
+/.vs/Software-Renderer/v16/ipch/AutoPCH/83e46ffd42ed1155/MODEL.ipch
+/.vs/Software-Renderer/v16/ipch/AutoPCH/a66c6ce8a48d3a86/EXE_COMMON.ipch

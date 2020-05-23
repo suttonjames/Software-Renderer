@@ -3,6 +3,8 @@
 #include "types.h"
 #include "maths.h"
 
+#include "model.h"
+
 typedef struct Backbuffer {
 	s32 width;
 	s32 height;
@@ -143,7 +145,7 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
 	running = true;
-
+	HINSTANCE hInstance = GetModuleHandle(0);
 	WNDCLASS window_class = {0};
 
 	window_class.style = CS_HREDRAW | CS_VREDRAW;
@@ -172,6 +174,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	UpdateWindow(window);
 
 	HDC device_context = GetDC(window);
+
+	Model *model = LoadModel("src/african_head.obj");
 	
 	while (running) {
 		MSG message;
@@ -196,6 +200,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f));
 		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f));
 
+		for (s32 i = 0; i < model->num_faces; i++) {
+			for (s32 j = 0; j < 3; j++) {
+				vec3 v0 = model->positions[i * 3 + j];
+				vec3 v1 = model->positions[i * 3 + ((j + 1) % 3)];
+
+				s32 x0 = (s32)((v0.x + 1) / 2 * backbuffer.width);
+				s32 y0 = (s32)((v0.y + 1) / 2 * backbuffer.height);
+				s32 x1 = (s32)((v1.x + 1) / 2 * backbuffer.width);
+				s32 y1 = (s32)((v1.y + 1) / 2 * backbuffer.height);
+
+				DrawLine(&backbuffer, Vec2i(x0, y0), Vec2i(x1, y1), Vec3f(255.f, 255.f, 255.f));
+			}
+		}
 		
 		StretchDIBits(device_context, 
 			0, 0, 
