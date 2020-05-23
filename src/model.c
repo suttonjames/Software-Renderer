@@ -21,8 +21,8 @@ static char* ReadLine(FILE* file)
 
 Model *LoadModel(const char* file_name)
 {
-	Model *model;
-	FILE *file;
+    Model *model;
+    FILE *file;
 
     vec3 *positions = NULL;
     vec2 *texcoords = NULL;
@@ -53,7 +53,7 @@ Model *LoadModel(const char* file_name)
             s32 items = sscanf(line + 3, "%f %f %f", &normal.x, &normal.y, &normal.z);
             assert(items == 3);
             sb_push(normals, normal);
-        } else if (strncmp(line, "f ", 2) == 0) {
+        } else if (strncmp(line, "f ", 2) == 0) { // faces
             s32 position[3], texcoord[3], normal[3];
             s32 items = sscanf(line + 2, "%d/%d/%d %d/%d/%d %d/%d/%d",
                 &position[0], &texcoord[0], &normal[0],
