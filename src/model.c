@@ -13,10 +13,9 @@ static char* ReadLine(FILE* file)
         sb_push(line, (char)c);
         if (c == '\n') {
             sb_push(line, '\0');
-            break;
+            return line;
         }
     }
-    return line;
 }
 
 Model *LoadModel(const char* file_name)
@@ -84,6 +83,7 @@ Model *LoadModel(const char* file_name)
         model->texcoords[i] = texcoords[texcoord_index[i]];
         model->normals[i] = normals[normal_index[i]];
     }
+
     sb_free(positions);
     sb_free(texcoords);
     sb_free(normals);
