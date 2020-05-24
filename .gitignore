@@ -62,3 +62,7 @@ dkms.conf
 /Software-Renderer.sln
 /.vs/Software-Renderer/v16/ipch/AutoPCH/83e46ffd42ed1155/MODEL.ipch
 /.vs/Software-Renderer/v16/ipch/AutoPCH/a66c6ce8a48d3a86/EXE_COMMON.ipch
+/.vs/Software-Renderer/v16/ipch/AutoPCH/2ff611699013b96/EXE_COMMON.ipch
+/.vs/Software-Renderer/v16/ipch/AutoPCH/7339deea3b1ea599/MAIN.ipch
+/x64/Release/Software.1987A97E.tlog
+/x64/Release

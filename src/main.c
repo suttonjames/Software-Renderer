@@ -88,8 +88,21 @@ static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
 
 static void FillTriangle(Backbuffer* buffer, vec2 point0, vec2 point1, vec2 point2, vec3 colour0, vec3 colour1, vec3 colour2)
 {
-	for (s32 j = 0; j < buffer->height; j++) {
-		for (s32 i = 0; i < buffer->width; i++) {
+	s32 min_x = buffer->width - 1, min_y = buffer->height - 1;
+	s32 max_x = 0, max_y = 0;
+
+	min_x = min(point2.x, min(point1.x, min(point0.x, min_x)));
+	min_y = min(point2.y, min(point1.y, min(point0.y, min_y)));
+	max_x = max(point2.x, max(point1.x, max(point0.x, max_x)));
+	max_y = max(point2.y, max(point1.y, max(point0.y, max_y)));
+
+	min_x = max(0, min_x);
+	min_y = max(0, min_y);
+	max_x = min(buffer->width - 1, max_x);
+	max_y = min(buffer->height - 1, max_y);
+
+	for (s32 j = min_y; j < max_y; j++) {
+		for (s32 i = min_x; i < max_x; i++) {
 			f32 s, t;
 			vec2 point = Vec2i(i, j);
 			if (InTriangle(point0, point1, point2, point, &s, &t)) {
@@ -142,10 +155,11 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 	return result;
 }
 
+
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
 	running = true;
-	HINSTANCE hInstance = GetModuleHandle(0);
+	
 	WNDCLASS window_class = {0};
 
 	window_class.style = CS_HREDRAW | CS_VREDRAW;
@@ -192,26 +206,20 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(10, 30), Vec3f(255.f, 0.f, 0.f));
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 10), Vec3f(255.f, 255.f, 255.f));
 
-		//DrawTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f));
-		//DrawTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f));
-		//DrawTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f));
-
 		FillTriangle(&backbuffer, Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80), Vec3f(255.f, 0.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 0.f, 255.f));
 		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f));
 		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f));
 
 		for (s32 i = 0; i < model->num_faces; i++) {
+			vec2 screen_coords[3];
 			for (s32 j = 0; j < 3; j++) {
-				vec3 v0 = model->positions[i * 3 + j];
-				vec3 v1 = model->positions[i * 3 + ((j + 1) % 3)];
+				vec3 vertex = model->positions[i * 3 + j];
 
-				s32 x0 = (s32)((v0.x + 1) / 2 * backbuffer.width);
-				s32 y0 = (s32)((v0.y + 1) / 2 * backbuffer.height);
-				s32 x1 = (s32)((v1.x + 1) / 2 * backbuffer.width);
-				s32 y1 = (s32)((v1.y + 1) / 2 * backbuffer.height);
-
-				DrawLine(&backbuffer, Vec2i(x0, y0), Vec2i(x1, y1), Vec3f(255.f, 255.f, 255.f));
+				screen_coords[j].x = (s32)((vertex.x + 1) / 2 * backbuffer.width);
+				screen_coords[j].y = (s32)((vertex.y + 1) / 2 * backbuffer.height);
+				screen_coords[j].y = (backbuffer.height) - screen_coords[j].y; // flip image
 			}
+			FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], Vec3f(255.f, 0.f, 0.f), Vec3f(255.f, 0.f, 0.f), Vec3f(255.f, 0.f, 0.f));
 		}
 		
 		StretchDIBits(device_context, 
@@ -225,5 +233,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			SRCCOPY
 		);
 	}
+
+	free(model);
 	return 0;
 }
