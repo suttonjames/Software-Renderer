@@ -210,16 +210,35 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		FillTriangle(&backbuffer, Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f));
 		FillTriangle(&backbuffer, Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f));
 
+		vec3 light = Vec3f(0.f, 0.f, -1.f);
+
 		for (s32 i = 0; i < model->num_faces; i++) {
 			vec2 screen_coords[3];
+			vec3 world_coords[3];
+			vec3 normal;
+			f32 intensity;
 			for (s32 j = 0; j < 3; j++) {
 				vec3 vertex = model->positions[i * 3 + j];
 
 				screen_coords[j].x = (s32)((vertex.x + 1) / 2 * backbuffer.width);
 				screen_coords[j].y = (s32)((vertex.y + 1) / 2 * backbuffer.height);
-				screen_coords[j].y = (backbuffer.height) - screen_coords[j].y; // flip image
+				screen_coords[j].y = backbuffer.height - screen_coords[j].y; // flip image
+
+				world_coords[j] = vertex;
 			}
-			FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], Vec3f(255.f, 0.f, 0.f), Vec3f(255.f, 0.f, 0.f), Vec3f(255.f, 0.f, 0.f));
+
+			normal = Vec3Cross(Vec3Minus(world_coords[2], world_coords[0]), Vec3Minus(world_coords[1], world_coords[0]));
+			normal = Vec3Normalise(normal);
+
+			intensity = Vec3Dot(normal, light);
+
+			if (intensity > 0) {
+				vec3 colour;
+				colour.r = intensity * 255;
+				colour.g = intensity * 255;
+				colour.b = intensity * 255;
+				FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colour, colour, colour);
+			}
 		}
 		
 		StretchDIBits(device_context, 

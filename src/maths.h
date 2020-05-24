@@ -212,4 +212,32 @@ inline vec4 Vec4Divide(vec4 left, vec4 right)
 	return result;
 }
 
+inline f32 Vec3Length(vec3 v)
+{
+	f32 result = (f32)sqrt((v.x * v.x + v.y * v.y + v.z * v.z));
+	return result;
+}
+
+inline vec3 Vec3Normalise(vec3 v)
+{
+	f32 length = Vec3Length(v);
+	vec3 result = Vec3f(v.x / length, v.y / length, v.z / length);
+	return result;
+}
+
+inline f32 Vec3Dot(vec3 v1, vec3 v2)
+{
+	f32 result = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+	return result;
+}
+
+inline vec3 Vec3Cross(vec3 v1, vec3 v2)
+{
+	vec3 result;
+	result.x = v1.y * v2.z - v1.z * v2.y;
+	result.y = v1.z * v2.x - v1.x * v2.z;
+	result.z = v1.x * v2.y - v1.y * v2.x;
+	return result;
+}
+
 #endif 
