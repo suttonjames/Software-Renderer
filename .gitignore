@@ -66,3 +66,5 @@ dkms.conf
 /.vs/Software-Renderer/v16/ipch/AutoPCH/7339deea3b1ea599/MAIN.ipch
 /x64/Release/Software.1987A97E.tlog
 /x64/Release
+/.vs/Software-Renderer/v16/ipch/AutoPCH
+/src/african_head_diffuse.tga

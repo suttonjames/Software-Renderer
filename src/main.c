@@ -3,6 +3,7 @@
 #include "types.h"
 #include "maths.h"
 
+#include "image.h"
 #include "model.h"
 
 typedef struct Backbuffer {
@@ -87,7 +88,7 @@ static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
 	return (s >= 0 && t >= 0 && s + t <= 1);
 }
 
-static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 point2, vec3 colour0, vec3 colour1, vec3 colour2, f32 *zbuffer)
+static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 point2, vec3 colour0, vec3 colour1, vec3 colour2, f32 *zbuffer, f32 intensity)
 {
 	s32 min_x = buffer->width - 1, min_y = buffer->height - 1;
 	s32 max_x = 0, max_y = 0;
@@ -112,9 +113,9 @@ static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 poin
 			if (InTriangle(point02, point12, point22, point, &s, &t)) {
 				f32 z = (1.0f - s - t) * point0.z + s * point1.z + t * point2.z;
 				vec3 colour;
-				colour.r = ((1.0f - s - t) * colour0.r + s * colour1.r + t * colour2.r);
-				colour.g = ((1.0f - s - t) * colour0.g + s * colour1.g + t * colour2.g);
-				colour.b = ((1.0f - s - t) * colour0.b + s * colour1.b + t * colour2.b);
+				colour.r = ((1.0f - s - t) * colour0.r + s * colour1.r + t * colour2.r) * intensity;
+				colour.g = ((1.0f - s - t) * colour0.g + s * colour1.g + t * colour2.g) * intensity;
+				colour.b = ((1.0f - s - t) * colour0.b + s * colour1.b + t * colour2.b) * intensity;
 				if (zbuffer[j * buffer->width + i] < z) {
 					DrawPixel(buffer, point.x, point.y, colour);
 					zbuffer[j * buffer->width + i] = z;
@@ -205,6 +206,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	HDC device_context = GetDC(window);
 
 	Model *model = LoadModel("src/african_head.obj");
+	Image* image = ReadFromTGA("src/african_head_diffuse.tga");
 	
 	while (running) {
 		MSG message;
@@ -223,19 +225,25 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(10, 30), Vec3f(255.f, 0.f, 0.f));
 		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 10), Vec3f(255.f, 255.f, 255.f));
 
-		FillTriangle(&backbuffer, Vec3i(10, 70, 1), Vec3i(50, 160, 1), Vec3i(70, 80, 1), Vec3f(255.f, 0.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 0.f, 255.f), zbuffer);
-		FillTriangle(&backbuffer, Vec3i(180, 50, 1), Vec3i(150, 1, 1), Vec3i(70, 180, 1), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f), zbuffer);
-		FillTriangle(&backbuffer, Vec3i(180, 150, 1), Vec3i(120, 160, 1), Vec3i(130, 180, 1), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), zbuffer);
+		FillTriangle(&backbuffer, Vec3i(10, 70, 1), Vec3i(50, 160, 1), Vec3i(70, 80, 1), Vec3f(255.f, 0.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 0.f, 255.f), zbuffer, 1.0f);
+		FillTriangle(&backbuffer, Vec3i(180, 50, 1), Vec3i(150, 1, 1), Vec3i(70, 180, 1), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f), zbuffer, 1.0f);
+		FillTriangle(&backbuffer, Vec3i(180, 150, 1), Vec3i(120, 160, 1), Vec3i(130, 180, 1), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), zbuffer, 1.0f);
 
 		vec3 light = Vec3f(0.f, 0.f, -1.f);
 
 		for (s32 i = 0; i < model->num_faces; i++) {
 			vec3 screen_coords[3];
 			vec3 world_coords[3];
+			vec3 colours[3];
 			vec3 normal;
 			f32 intensity;
 			for (s32 j = 0; j < 3; j++) {
 				vec3 vertex = model->positions[i * 3 + j];
+				vec2 uv = model->texcoords[i * 3 + j];
+
+				s32 tex_x = (s32)(uv.x * image->width);
+				s32 tex_y = (s32)(uv.y * image->height);
+				colours[j] = GetColour(image, tex_y, tex_x);
 
 				screen_coords[j].x = (s32)((vertex.x + 1) / 2 * backbuffer.width);
 				screen_coords[j].y = (s32)((vertex.y + 1) / 2 * backbuffer.height);
@@ -250,13 +258,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 			intensity = Vec3Dot(normal, light);
 
-			if (intensity > 0) {
-				vec3 colour;
-				colour.r = intensity * 255;
-				colour.g = intensity * 255;
-				colour.b = intensity * 255;
-				FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colour, colour, colour, zbuffer);
-			}
+			if (intensity > 0) 
+				FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colours[0], colours[1], colours[2], zbuffer, intensity);
 		}
 		
 		StretchDIBits(device_context, 
