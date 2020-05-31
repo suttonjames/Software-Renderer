@@ -127,6 +127,72 @@ static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 poin
 	}
 }
 
+typedef struct Varyings {
+	// input vertex shader
+	vec3 in_positions[3];
+	vec2 in_texcoords[3];
+
+	// output vertex shader
+	vec2 out_texcoords[3];
+
+	// input fragment shader
+	vec2 in_texcoord;
+} Varyings;
+
+typedef struct Uniforms {
+	mat4 mvp;
+} Uniforms;
+
+typedef struct Program {
+	void *varyings;
+	void *uniforms;
+} Program;
+
+static Program program;
+
+static vec4 VertexShader(s32 vertex, void *varyings_, void *uniforms_)
+{
+	Varyings *varyings = (Varyings*)varyings_;
+	Uniforms *uniforms = (Uniforms*)uniforms_;
+
+	vec3 in_position = varyings->in_positions[vertex];
+	vec2 in_texcoord = varyings->in_texcoords[vertex];
+	mat4 mvp = uniforms->mvp;
+
+	vec2 *out_texcoord = &varyings->out_texcoords[vertex];
+
+	vec4 position = Vec4(in_position, 1.0f);
+	vec4 clip_coord = Mat4MultiplyVec4(mvp, position);
+
+	return clip_coord;
+}
+
+static vec3 FragmentShader(vec3 colour, void *varyings, void *uniforms)
+{
+
+}
+
+static void Draw(Backbuffer *buffer, Program *program)
+{
+	void *varyings = program->varyings;
+	void *uniforms = program->uniforms;
+	vec3 screen_coords[3];
+	vec3 colours[3];
+	f32 intensity = 1.0f;
+
+	for (s32 i = 0; i < 3; i++) {
+		vec4 clip_coord = VertexShader(i, varyings, uniforms);
+		vec4 coord = Vec4f(clip_coord.x / clip_coord.w, clip_coord.y / clip_coord.w, clip_coord.z / clip_coord.w, clip_coord.w / clip_coord.w);
+		vec4 ndc_coord = Mat4MultiplyVec4(viewport, coord);
+		screen_coords[i].x = ndc_coord.x;
+		screen_coords[i].y = ndc_coord.y;
+		screen_coords[i].z = ndc_coord.z;
+
+		colours[i] = Vec3f(255.f, 255.f, 255.f);
+	}
+	FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colours[0], colours[1], colours[2], zbuffer, intensity);
+}
+
 
 static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -243,6 +309,20 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 		vec3 light = Vec3f(0.f, 0.f, -1.f);
 
+		Varyings varyings;
+		Uniforms uniforms;
+		program.varyings = &varyings;
+		program.uniforms = &uniforms;
+		uniforms.mvp = MVP;
+
+		for (s32 i = 0; i < model->num_faces; i++) {
+			for (s32 j = 0; j < 3; j++) {
+				varyings.in_positions[j] = model->positions[i * 3 + j];
+				varyings.in_texcoords[j] = model->texcoords[i * 3 + j];
+			}
+			Draw(&backbuffer, &program);
+		}
+#if 0
 		for (s32 i = 0; i < model->num_faces; i++) {
 			vec3 screen_coords[3];
 			vec3 world_coords[3];
@@ -276,7 +356,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			if (intensity > 0) 
 				FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colours[0], colours[1], colours[2], zbuffer, intensity);
 		}
-		
+#endif
 		StretchDIBits(device_context, 
 			0, 0, 
 			backbuffer.width, backbuffer.height, 
