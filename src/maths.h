@@ -50,6 +50,12 @@ typedef union vec4 {
 	f32 elements[4];
 } vec4;
 
+typedef union mat4
+{
+	f32 elements[4][4];
+	f32 item[16];
+} mat4;
+
 inline vec2 Vec2i(s32 x, s32 y)
 {
 	vec2 result = { 0 };
@@ -101,6 +107,26 @@ inline vec4 Vec4f(f32 x, f32 y, f32 z, f32 w)
 	result.y = y;
 	result.z = z;
 	result.w = w;
+	return result;
+}
+
+inline vec4 Vec4(vec3 v, f32 f)
+{
+	vec4 result = { 0 };
+	result.x = v.x;
+	result.y = v.y;
+	result.z = v.z;
+	result.w = f;
+	return result;
+}
+
+inline mat4 Mat4(f32 value)
+{
+	mat4 result = { 0 };
+	result.elements[0][0] = value;
+	result.elements[1][1] = value;
+	result.elements[2][2] = value;
+	result.elements[3][3] = value;
 	return result;
 }
 
@@ -212,6 +238,35 @@ inline vec4 Vec4Divide(vec4 left, vec4 right)
 	return result;
 }
 
+inline vec4 Mat4MultiplyVec4(mat4 matrix, vec4 vector)
+{
+	vec4 result;
+	for (s32 i = 0; i < 4; i++) {
+		f32 sum = 0.0f;
+		for (s32 j = 0; j < 4; j++) {
+			sum += matrix.elements[i][j] * vector.elements[j];
+		}
+		result.elements[i] = sum;
+	}
+	return result;
+}
+
+inline mat4 Mat4Multiply(mat4 left, mat4 right)
+{
+	mat4 result;
+	for (s32 j = 0; j < 4; ++j)
+	{
+		for (s32 i = 0; i < 4; ++i)
+		{
+			result.elements[i][j] = (left.elements[0][j] * right.elements[i][0] +
+				left.elements[1][j] * right.elements[i][1] +
+				left.elements[2][j] * right.elements[i][2] +
+				left.elements[3][j] * right.elements[i][3]);
+		}
+	}
+	return result;
+}
+
 inline f32 Vec3Length(vec3 v)
 {
 	f32 result = (f32)sqrt((v.x * v.x + v.y * v.y + v.z * v.z));
@@ -237,6 +292,55 @@ inline vec3 Vec3Cross(vec3 v1, vec3 v2)
 	result.x = v1.y * v2.z - v1.z * v2.y;
 	result.y = v1.z * v2.x - v1.x * v2.z;
 	result.z = v1.x * v2.y - v1.y * v2.x;
+	return result;
+}
+
+inline mat4 LookAt(vec3 eye, vec3 centre, vec3 up) {
+	vec3 z_axis = Vec3Normalise(Vec3Minus(eye, centre));
+	vec3 x_axis = Vec3Normalise(Vec3Cross(up, z_axis));
+	vec3 y_axis = Vec3Normalise(Vec3Cross(z_axis, x_axis));
+
+	mat4 result = Mat4(1.0f);
+
+	result.elements[0][0] = x_axis.x;
+	result.elements[0][1] = x_axis.y;
+	result.elements[0][2] = x_axis.z;
+
+	result.elements[1][0] = y_axis.x;
+	result.elements[1][1] = y_axis.y;
+	result.elements[1][2] = y_axis.z;
+
+	result.elements[2][0] = z_axis.x;
+	result.elements[2][1] = z_axis.y;
+	result.elements[2][2] = z_axis.z;
+
+	result.elements[0][3] = -centre.x;
+	result.elements[1][3] = -centre.y;
+	result.elements[2][3] = -centre.z;
+
+	return result;
+}
+
+inline mat4 Viewport(s32 x, s32 y, s32 width, s32 height)
+{
+	mat4 result = Mat4(1.0f);
+
+	result.elements[0][0] = width / 2.0f;
+	result.elements[0][3] = x + width / 2.0f;
+
+	result.elements[1][1] = height / 2.0f;
+	result.elements[1][3] = y + height / 2.0f;
+
+	result.elements[2][2] = 255.0f / 2.0f;
+	result.elements[2][3] = 255.0f / 2.0f;
+
+	return result;
+}
+
+inline mat4 Projection(f32 coeff)
+{
+	mat4 result = Mat4(1.0f);
+	result.elements[3][2] = coeff;
 	return result;
 }
 

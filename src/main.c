@@ -16,6 +16,7 @@ typedef struct Backbuffer {
 static Backbuffer backbuffer;
 static b32 running;
 static f32 *zbuffer;
+static mat4 viewport;
 
 static void Swap(f32* xp, f32* yp)
 {
@@ -164,6 +165,8 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 
 			zbuffer = VirtualAlloc(0, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
+			viewport = Viewport(0, 0, backbuffer.width, backbuffer.height);
+
 		} break;
 		default:
 			result = DefWindowProc(window, message, wParam, lParam);
@@ -206,7 +209,16 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	HDC device_context = GetDC(window);
 
 	Model *model = LoadModel("src/african_head.obj");
-	Image* image = ReadFromTGA("src/african_head_diffuse.tga");
+	Image *image = ReadFromTGA("src/african_head_diffuse.tga");
+
+	vec3 eye = Vec3f(-1.0f, 1.0f, 3.0f);
+	vec3 centre = Vec3f(0.0f, 0.0f, 0.0f);
+	vec3 up = Vec3f(0.0f, -1.0f, 0.0f);
+
+	mat4 model_view = LookAt(eye, centre, up);
+	f32 coeff = -1.0f / Vec3Length(Vec3Minus(centre, eye));
+	mat4 projection = Projection(coeff);
+	mat4 MVP = Mat4Multiply(projection, model_view);
 	
 	while (running) {
 		MSG message;
@@ -241,14 +253,17 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 				vec3 vertex = model->positions[i * 3 + j];
 				vec2 uv = model->texcoords[i * 3 + j];
 
+				vec4 clip_coord = Mat4MultiplyVec4(MVP, Vec4(vertex, 1.0f));
+				vec4 coord = Vec4f(clip_coord.x / clip_coord.w, clip_coord.y / clip_coord.w, clip_coord.z / clip_coord.w, clip_coord.w / clip_coord.w);
+				vec4 ndc_coord = Mat4MultiplyVec4(viewport, coord);
+
+				screen_coords[j].x = ndc_coord.x;
+				screen_coords[j].y = ndc_coord.y;
+				screen_coords[j].z = ndc_coord.z;
+
 				s32 tex_x = (s32)(uv.x * image->width);
 				s32 tex_y = (s32)(uv.y * image->height);
 				colours[j] = GetColour(image, tex_y, tex_x);
-
-				screen_coords[j].x = (s32)((vertex.x + 1) / 2 * backbuffer.width);
-				screen_coords[j].y = (s32)((vertex.y + 1) / 2 * backbuffer.height);
-				screen_coords[j].y = backbuffer.height - screen_coords[j].y; // flip image
-				screen_coords[j].z = (s32)((vertex.z + 0.5) * 128);
 
 				world_coords[j] = vertex;
 			}
