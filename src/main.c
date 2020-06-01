@@ -9,7 +9,7 @@
 typedef struct Backbuffer {
 	s32 width;
 	s32 height;
-	void* memory;
+	void *memory;
 	BITMAPINFO bitmapInfo;
 } Backbuffer;
 
@@ -18,7 +18,7 @@ static b32 running;
 static f32 *zbuffer;
 static mat4 viewport;
 
-static void Swap(f32* xp, f32* yp)
+static void Swap(f32 *xp, f32 *yp)
 {
 	f32 temp = *xp;
 	*xp = *yp;
@@ -34,7 +34,7 @@ static void DrawPixel(Backbuffer* buffer, s32 x, s32 y, vec3 colour)
 	*pixel = (((s32)colour.r << 16) | ((s32)colour.g << 8) | (s32)colour.b);
 }
 
-static void DrawLine(Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
+static void DrawLine(Backbuffer *buffer, vec2 v0, vec2 v1, vec3 colour)
 {
 	s32 dx = abs(v1.x - v0.x);
 	s32 dy = abs(v1.y - v0.y);
@@ -62,14 +62,14 @@ static void DrawLine(Backbuffer* buffer, vec2 v0, vec2 v1, vec3 colour)
 	}
 }
 
-static void DrawTriangle(Backbuffer* buffer, vec2 v0, vec2 v1, vec2 v2, vec3 colour)
+static void DrawTriangle(Backbuffer *buffer, vec2 v0, vec2 v1, vec2 v2, vec3 colour)
 {
 	DrawLine(buffer, v0, v1, colour);
 	DrawLine(buffer, v1, v2, colour);
 	DrawLine(buffer, v2, v0, colour);
 }
 
-static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
+static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32 *sp, f32 *tp)
 {
 	vec2 AB = Vec2Minus(b, a);
 	vec2 AC = Vec2Minus(c, a);
@@ -89,7 +89,7 @@ static int InTriangle(vec2 a, vec2 b, vec2 c, vec2 p, f32* sp, f32* tp)
 	return (s >= 0 && t >= 0 && s + t <= 1);
 }
 
-static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 point2, vec3 colour0, vec3 colour1, vec3 colour2, f32 *zbuffer, f32 intensity)
+static void FillTriangle(Backbuffer *buffer, vec3 point0, vec3 point1, vec3 point2, vec3 colour0, vec3 colour1, vec3 colour2, f32 *zbuffer, f32 intensity)
 {
 	s32 min_x = buffer->width - 1, min_y = buffer->height - 1;
 	s32 max_x = 0, max_y = 0;
@@ -121,7 +121,6 @@ static void FillTriangle(Backbuffer* buffer, vec3 point0, vec3 point1, vec3 poin
 					DrawPixel(buffer, point.x, point.y, colour);
 					zbuffer[j * buffer->width + i] = z;
 				}
-				
 			}
 		}
 	}
@@ -141,6 +140,8 @@ typedef struct Varyings {
 
 typedef struct Uniforms {
 	mat4 mvp;
+
+	Image *diffuse_map;
 } Uniforms;
 
 typedef struct Program {
@@ -160,6 +161,7 @@ static vec4 VertexShader(s32 vertex, void *varyings_, void *uniforms_)
 	mat4 mvp = uniforms->mvp;
 
 	vec2 *out_texcoord = &varyings->out_texcoords[vertex];
+	*out_texcoord = in_texcoord;
 
 	vec4 position = Vec4(in_position, 1.0f);
 	vec4 clip_coord = Mat4MultiplyVec4(mvp, position);
@@ -167,9 +169,34 @@ static vec4 VertexShader(s32 vertex, void *varyings_, void *uniforms_)
 	return clip_coord;
 }
 
-static vec3 FragmentShader(vec3 colour, void *varyings, void *uniforms)
+static vec3 FragmentShader(void *varyings_, void *uniforms_)
 {
+	Varyings *varyings = (Varyings*)varyings_;
+	Uniforms *uniforms = (Uniforms*)uniforms_;
 
+	vec2 in_texcoord = varyings->in_texcoord;
+	Image *diffuse_map = uniforms->diffuse_map;
+
+	vec3 colour;
+
+	s32 tex_x = (s32)(in_texcoord.x * 1024);
+	s32 tex_y = (s32)(in_texcoord.y * 1024);
+	colour = GetColour(diffuse_map, tex_y, tex_x);
+
+	return colour;
+}
+
+static vec2 Vec2Interp(vec2 v[3], f32 s, f32 t) {
+	vec2 result;
+	result.x = ((1.0f - s - t) * v[0].x + s * v[1].x + t * v[2].x);
+	result.y = ((1.0f - s - t) * v[0].y + s * v[1].y + t * v[2].y);
+	return result;
+}
+
+static void InterpolateVaryings(f32 s, f32 t, void *varyings_) {
+	Varyings *varyings = (Varyings*)varyings_;
+	vec2 *out_texcoords = varyings->out_texcoords;
+	varyings->in_texcoord = Vec2Interp(out_texcoords, s, t);
 }
 
 static void Draw(Backbuffer *buffer, Program *program)
@@ -177,8 +204,6 @@ static void Draw(Backbuffer *buffer, Program *program)
 	void *varyings = program->varyings;
 	void *uniforms = program->uniforms;
 	vec3 screen_coords[3];
-	vec3 colours[3];
-	f32 intensity = 1.0f;
 
 	for (s32 i = 0; i < 3; i++) {
 		vec4 clip_coord = VertexShader(i, varyings, uniforms);
@@ -187,10 +212,38 @@ static void Draw(Backbuffer *buffer, Program *program)
 		screen_coords[i].x = ndc_coord.x;
 		screen_coords[i].y = ndc_coord.y;
 		screen_coords[i].z = ndc_coord.z;
-
-		colours[i] = Vec3f(255.f, 255.f, 255.f);
 	}
-	FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colours[0], colours[1], colours[2], zbuffer, intensity);
+	s32 min_x = buffer->width - 1, min_y = buffer->height - 1;
+	s32 max_x = 0, max_y = 0;
+
+	min_x = min(screen_coords[2].x, min(screen_coords[1].x, min(screen_coords[0].x, min_x)));
+	min_y = min(screen_coords[2].y, min(screen_coords[1].y, min(screen_coords[0].y, min_y)));
+	max_x = max(screen_coords[2].x, max(screen_coords[1].x, max(screen_coords[0].x, max_x)));
+	max_y = max(screen_coords[2].y, max(screen_coords[1].y, max(screen_coords[0].y, max_y)));
+
+	min_x = max(0, min_x);
+	min_y = max(0, min_y);
+	max_x = min(buffer->width - 1, max_x);
+	max_y = min(buffer->height - 1, max_y);
+
+	for (s32 j = min_y; j < max_y; j++) {
+		for (s32 i = min_x; i < max_x; i++) {
+			vec2 point = Vec2i(i, j);
+			vec2 point0 = Vec2i(screen_coords[0].x, screen_coords[0].y);
+			vec2 point1 = Vec2i(screen_coords[1].x, screen_coords[1].y);
+			vec2 point2 = Vec2i(screen_coords[2].x, screen_coords[2].y);
+			f32 s, t;
+			if (InTriangle(point0, point1, point2, point, &s, &t)) {
+				f32 depth = (1.0f - s - t) * screen_coords[0].z + s * screen_coords[1].z + t * screen_coords[2].z;
+				if (zbuffer[j * buffer->width + i] < depth) {
+					InterpolateVaryings(s, t, varyings);
+					vec3 colour = FragmentShader(varyings, uniforms);
+					DrawPixel(buffer, point.x, point.y, colour);
+					zbuffer[j * buffer->width + i] = depth;
+				}
+			}
+		}
+	}
 }
 
 
@@ -285,6 +338,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	f32 coeff = -1.0f / Vec3Length(Vec3Minus(centre, eye));
 	mat4 projection = Projection(coeff);
 	mat4 MVP = Mat4Multiply(projection, model_view);
+
+	vec3 light = Vec3f(0.f, 0.f, -1.f);
+
+	Varyings varyings;
+	Uniforms uniforms;
+	program.varyings = &varyings;
+	program.uniforms = &uniforms;
+	uniforms.mvp = MVP;
+	uniforms.diffuse_map = image;
 	
 	while (running) {
 		MSG message;
@@ -307,14 +369,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		FillTriangle(&backbuffer, Vec3i(180, 50, 1), Vec3i(150, 1, 1), Vec3i(70, 180, 1), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f), zbuffer, 1.0f);
 		FillTriangle(&backbuffer, Vec3i(180, 150, 1), Vec3i(120, 160, 1), Vec3i(130, 180, 1), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), zbuffer, 1.0f);
 
-		vec3 light = Vec3f(0.f, 0.f, -1.f);
-
-		Varyings varyings;
-		Uniforms uniforms;
-		program.varyings = &varyings;
-		program.uniforms = &uniforms;
-		uniforms.mvp = MVP;
-
 		for (s32 i = 0; i < model->num_faces; i++) {
 			for (s32 j = 0; j < 3; j++) {
 				varyings.in_positions[j] = model->positions[i * 3 + j];
@@ -322,41 +376,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			}
 			Draw(&backbuffer, &program);
 		}
-#if 0
-		for (s32 i = 0; i < model->num_faces; i++) {
-			vec3 screen_coords[3];
-			vec3 world_coords[3];
-			vec3 colours[3];
-			vec3 normal;
-			f32 intensity;
-			for (s32 j = 0; j < 3; j++) {
-				vec3 vertex = model->positions[i * 3 + j];
-				vec2 uv = model->texcoords[i * 3 + j];
 
-				vec4 clip_coord = Mat4MultiplyVec4(MVP, Vec4(vertex, 1.0f));
-				vec4 coord = Vec4f(clip_coord.x / clip_coord.w, clip_coord.y / clip_coord.w, clip_coord.z / clip_coord.w, clip_coord.w / clip_coord.w);
-				vec4 ndc_coord = Mat4MultiplyVec4(viewport, coord);
-
-				screen_coords[j].x = ndc_coord.x;
-				screen_coords[j].y = ndc_coord.y;
-				screen_coords[j].z = ndc_coord.z;
-
-				s32 tex_x = (s32)(uv.x * image->width);
-				s32 tex_y = (s32)(uv.y * image->height);
-				colours[j] = GetColour(image, tex_y, tex_x);
-
-				world_coords[j] = vertex;
-			}
-
-			normal = Vec3Cross(Vec3Minus(world_coords[2], world_coords[0]), Vec3Minus(world_coords[1], world_coords[0]));
-			normal = Vec3Normalise(normal);
-
-			intensity = Vec3Dot(normal, light);
-
-			if (intensity > 0) 
-				FillTriangle(&backbuffer, screen_coords[0], screen_coords[1], screen_coords[2], colours[0], colours[1], colours[2], zbuffer, intensity);
-		}
-#endif
 		StretchDIBits(device_context, 
 			0, 0, 
 			backbuffer.width, backbuffer.height, 
@@ -370,5 +390,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	}
 
 	free(model);
+	free(image);
 	return 0;
 }
