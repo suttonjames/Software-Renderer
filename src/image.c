@@ -66,6 +66,11 @@ Image* ReadFromTGA(const char* file_name)
 	return image;
 }
 
+void FreeImage(Image *image)
+{
+	free(image);
+}
+
 static vec3 GetColour(Image *image, int x, int y)
 {
 	s32 channels = image->channels;

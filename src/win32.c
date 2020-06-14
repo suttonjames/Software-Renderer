@@ -147,8 +147,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	}
 
 	FreeModel(model);
-	free(diffuse_map);
-	free(normal_map);
-	free(specular_map);
+	FreeImage(diffuse_map);
+	FreeImage(normal_map);
+	FreeImage(specular_map);
 	return 0;
 }

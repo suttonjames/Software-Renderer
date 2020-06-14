@@ -16,6 +16,7 @@ typedef struct Image
 } Image;
 
 Image *ReadFromTGA(const char* file_name);
+void FreeImage(Image *image);
 
 vec3 SampleTexture(Image *texture, vec2 texcoord);
 
