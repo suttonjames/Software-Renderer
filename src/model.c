@@ -72,7 +72,7 @@ Model *LoadModel(const char* file_name)
 
     s32 num_indices = sb_count(position_index);
 
-    model = (Model*)malloc(sizeof(model));
+    model = (Model*)malloc(sizeof(Model));
     model->positions = (vec3*)malloc(sizeof(vec3) * num_indices);
     model->texcoords = (vec2*)malloc(sizeof(vec2) * num_indices);
     model->normals = (vec3*)malloc(sizeof(vec3) * num_indices);

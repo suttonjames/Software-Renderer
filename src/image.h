@@ -17,6 +17,6 @@ typedef struct Image
 
 Image *ReadFromTGA(const char* file_name);
 
-vec3 GetColour(Image *image, int x, int y);
+vec3 SampleTexture(Image *texture, vec2 texcoord);
 
 #endif

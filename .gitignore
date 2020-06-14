@@ -68,3 +68,5 @@ dkms.conf
 /x64/Release
 /.vs/Software-Renderer/v16/ipch/AutoPCH
 /src/african_head_diffuse.tga
+/src/african_head_nm.tga
+/src/african_head_spec.tga

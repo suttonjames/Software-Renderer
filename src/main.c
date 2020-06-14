@@ -140,8 +140,11 @@ typedef struct Varyings {
 
 typedef struct Uniforms {
 	mat4 mvp;
-
+	mat4 mvp_inverse;
+	vec3 light;
 	Image *diffuse_map;
+	Image *normal_map;
+	Image *specular_map;
 } Uniforms;
 
 typedef struct Program {
@@ -175,18 +178,54 @@ static vec3 FragmentShader(void *varyings_, void *uniforms_)
 	Uniforms *uniforms = (Uniforms*)uniforms_;
 
 	vec2 in_texcoord = varyings->in_texcoord;
+
+	mat4 mvp = uniforms->mvp;
+	mat4 mvp_inverse = uniforms->mvp_inverse;
+	vec3 light = uniforms->light;
 	Image *diffuse_map = uniforms->diffuse_map;
+	Image *normal_map = uniforms->normal_map;
+	Image *specular_map = uniforms->specular_map;
 
-	vec3 colour;
+	// transfor normal
+	vec3 normal = SampleTexture(normal_map, in_texcoord);
+	normal.x = normal.r / 255.0f * 2.0f - 1.0f;
+	normal.y = normal.g / 255.0f * 2.0f - 1.0f;
+	normal.z = normal.b / 255.0f * 2.0f - 1.0f;
+	vec4 normal_4f = Vec4(normal, 1.0f);
+	normal_4f = Mat4MultiplyVec4(mvp, normal_4f);
+	normal = Vec3Normalise(Vec3(normal_4f));
 
-	s32 tex_x = (s32)(in_texcoord.x * 1024);
-	s32 tex_y = (s32)(in_texcoord.y * 1024);
-	colour = GetColour(diffuse_map, tex_y, tex_x);
+	// transform light
+	vec4 light_4f = Vec4(light, 1.0f);
+	light_4f = Mat4MultiplyVec4(mvp, light_4f);
+	light = Vec3Normalise(Vec3(light_4f));
+
+	// reflected = 2 * normal * dot(normal, light) - light
+	float intensity = Vec3Dot(normal, light);
+	vec3 reflected = Vec3Scale(normal, intensity * 2.0f);
+	reflected = Vec3Normalise(Vec3Minus(reflected, light));
+
+	// specular factor
+	vec3 spec = SampleTexture(specular_map, in_texcoord);
+	float specular = spec.b;
+	float base = max(reflected.z, 0.0f);
+	specular = (float)pow(base, specular);
+
+	// diffuse factor
+	float diffuse = max(intensity, 0.0f);
+
+	vec3 colour = SampleTexture(diffuse_map, in_texcoord);
+	colour.r = 5.0f + colour.r * (diffuse + 0.6f * specular);
+	colour.g = 5.0f + colour.g * (diffuse + 0.6f * specular);
+	colour.b = 5.0f + colour.b * (diffuse + 0.6f * specular);
+	colour.r = min(255.0f, colour.r);
+	colour.g = min(255.0f, colour.g);
+	colour.b = min(255.0f, colour.b);
 
 	return colour;
 }
 
-static vec2 Vec2Interp(vec2 v[3], f32 s, f32 t) {
+static vec2 Vec2Interpolate(vec2 v[3], f32 s, f32 t) {
 	vec2 result;
 	result.x = ((1.0f - s - t) * v[0].x + s * v[1].x + t * v[2].x);
 	result.y = ((1.0f - s - t) * v[0].y + s * v[1].y + t * v[2].y);
@@ -196,7 +235,7 @@ static vec2 Vec2Interp(vec2 v[3], f32 s, f32 t) {
 static void InterpolateVaryings(f32 s, f32 t, void *varyings_) {
 	Varyings *varyings = (Varyings*)varyings_;
 	vec2 *out_texcoords = varyings->out_texcoords;
-	varyings->in_texcoord = Vec2Interp(out_texcoords, s, t);
+	varyings->in_texcoord = Vec2Interpolate(out_texcoords, s, t);
 }
 
 static void Draw(Backbuffer *buffer, Program *program)
@@ -274,7 +313,7 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPA
 
 			backbuffer.bitmapInfo.bmiHeader.biSize = sizeof(backbuffer.bitmapInfo.bmiHeader);
 			backbuffer.bitmapInfo.bmiHeader.biWidth = backbuffer.width;
-			backbuffer.bitmapInfo.bmiHeader.biHeight = -backbuffer.height;
+			backbuffer.bitmapInfo.bmiHeader.biHeight = backbuffer.height;
 			backbuffer.bitmapInfo.bmiHeader.biPlanes = 1;
 			backbuffer.bitmapInfo.bmiHeader.biBitCount = 32;
 			backbuffer.bitmapInfo.bmiHeader.biCompression = BI_RGB;
@@ -313,6 +352,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		WS_OVERLAPPEDWINDOW, 
 		CW_USEDEFAULT, CW_USEDEFAULT, 
 		CW_USEDEFAULT, CW_USEDEFAULT, 
+		//800, 800,
 		0, 
 		0, 
 		hInstance, 
@@ -328,25 +368,32 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	HDC device_context = GetDC(window);
 
 	Model *model = LoadModel("src/african_head.obj");
-	Image *image = ReadFromTGA("src/african_head_diffuse.tga");
+	Image *diffuse_map = ReadFromTGA("src/african_head_diffuse.tga");
+	Image *normal_map = ReadFromTGA("src/african_head_nm.tga");
+	Image *specular_map = ReadFromTGA("src/african_head_spec.tga");
 
-	vec3 eye = Vec3f(-1.0f, 1.0f, 3.0f);
+	vec3 eye = Vec3f(1.0f, 1.0f, 3.0f);
 	vec3 centre = Vec3f(0.0f, 0.0f, 0.0f);
-	vec3 up = Vec3f(0.0f, -1.0f, 0.0f);
+	vec3 up = Vec3f(0.0f, 1.0f, 0.0f);
 
 	mat4 model_view = LookAt(eye, centre, up);
 	f32 coeff = -1.0f / Vec3Length(Vec3Minus(centre, eye));
 	mat4 projection = Projection(coeff);
-	mat4 MVP = Mat4Multiply(projection, model_view);
+	mat4 mvp = Mat4Multiply(projection, model_view);
+	mat4 mvp_inverse = Mat4InverseTranspose(mvp);
 
-	vec3 light = Vec3f(0.f, 0.f, -1.f);
+	vec3 light = Vec3f(1.0f, 1.0f, 1.0f);
 
 	Varyings varyings;
 	Uniforms uniforms;
 	program.varyings = &varyings;
 	program.uniforms = &uniforms;
-	uniforms.mvp = MVP;
-	uniforms.diffuse_map = image;
+	uniforms.mvp = mvp;
+	uniforms.mvp_inverse = mvp_inverse;
+	uniforms.light = light;
+	uniforms.diffuse_map = diffuse_map;
+	uniforms.normal_map = normal_map;
+	uniforms.specular_map = specular_map;
 	
 	while (running) {
 		MSG message;
@@ -359,15 +406,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		memset(backbuffer.memory, 0, (s64)backbuffer.width * (s64)backbuffer.height * sizeof(s32));
 		// Clear zbuffer
 		memset(zbuffer, 0, (s64)backbuffer.width * (s64)backbuffer.height * sizeof(f32));
-
-		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(50, 30), Vec3f(0.f, 0.f, 255.f));
-		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 50), Vec3f(0.f, 255.f, 0.f));
-		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(10, 30), Vec3f(255.f, 0.f, 0.f));
-		DrawLine(&backbuffer, Vec2i(30, 30), Vec2i(30, 10), Vec3f(255.f, 255.f, 255.f));
-
-		FillTriangle(&backbuffer, Vec3i(10, 70, 1), Vec3i(50, 160, 1), Vec3i(70, 80, 1), Vec3f(255.f, 0.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 0.f, 255.f), zbuffer, 1.0f);
-		FillTriangle(&backbuffer, Vec3i(180, 50, 1), Vec3i(150, 1, 1), Vec3i(70, 180, 1), Vec3f(255.f, 255.f, 255.f), Vec3f(255.f, 255.f, 255.f), Vec3f(0.f, 0.f, 255.f), zbuffer, 1.0f);
-		FillTriangle(&backbuffer, Vec3i(180, 150, 1), Vec3i(120, 160, 1), Vec3i(130, 180, 1), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), Vec3f(0.f, 255.f, 0.f), zbuffer, 1.0f);
 
 		for (s32 i = 0; i < model->num_faces; i++) {
 			for (s32 j = 0; j < 3; j++) {
@@ -389,7 +427,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		);
 	}
 
-	free(model);
-	free(image);
+	FreeModel(model);
+	free(diffuse_map);
+	free(normal_map);
+	free(specular_map);
 	return 0;
 }

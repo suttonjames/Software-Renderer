@@ -90,6 +90,15 @@ inline vec3 Vec3f(f32 x, f32 y, f32 z)
 	return result;
 }
 
+inline vec3 Vec3(vec4 v)
+{
+	vec3 result = { 0 };
+	result.x = v.x / v.w;
+	result.y = v.y / v.w;
+	result.z = v.z / v.w;
+	return result;
+}
+
 inline vec4 Vec4i(s32 x, s32 y, s32 z, s32 w)
 {
 	vec4 result = { 0 };
@@ -238,6 +247,16 @@ inline vec4 Vec4Divide(vec4 left, vec4 right)
 	return result;
 }
 
+inline mat4 Mat4MultiplyFloat(mat4 m, f32 f)
+{
+	for (s32 j = 0; j < 4; ++j) {
+		for (s32 i = 0; i < 4; ++i) {
+			m.elements[i][j] *= f;
+		}
+	}
+	return m;
+}
+
 inline vec4 Mat4MultiplyVec4(mat4 matrix, vec4 vector)
 {
 	vec4 result;
@@ -295,6 +314,15 @@ inline vec3 Vec3Cross(vec3 v1, vec3 v2)
 	return result;
 }
 
+inline vec3 Vec3Scale(vec3 v, f32 f)
+{
+	vec3 result;
+	result.x = v.x * f;
+	result.y = v.y * f;
+	result.z = v.z * f;
+	return result;
+}
+
 inline mat4 LookAt(vec3 eye, vec3 centre, vec3 up) {
 	vec3 z_axis = Vec3Normalise(Vec3Minus(eye, centre));
 	vec3 x_axis = Vec3Normalise(Vec3Cross(up, z_axis));
@@ -341,6 +369,84 @@ inline mat4 Projection(f32 coeff)
 {
 	mat4 result = Mat4(1.0f);
 	result.elements[3][2] = coeff;
+	return result;
+}
+
+inline mat4 Mat4Inverse(mat4 m)
+{
+	f32 coef00 = m.elements[2][2] * m.elements[3][3] - m.elements[3][2] * m.elements[2][3];
+	f32 coef02 = m.elements[1][2] * m.elements[3][3] - m.elements[3][2] * m.elements[1][3];
+	f32 coef03 = m.elements[1][2] * m.elements[2][3] - m.elements[2][2] * m.elements[1][3];
+	f32 coef04 = m.elements[2][1] * m.elements[3][3] - m.elements[3][1] * m.elements[2][3];
+	f32 coef06 = m.elements[1][1] * m.elements[3][3] - m.elements[3][1] * m.elements[1][3];
+	f32 coef07 = m.elements[1][1] * m.elements[2][3] - m.elements[2][1] * m.elements[1][3];
+	f32 coef08 = m.elements[2][1] * m.elements[3][2] - m.elements[3][1] * m.elements[2][2];
+	f32 coef10 = m.elements[1][1] * m.elements[3][2] - m.elements[3][1] * m.elements[1][2];
+	f32 coef11 = m.elements[1][1] * m.elements[2][2] - m.elements[2][1] * m.elements[1][2];
+	f32 coef12 = m.elements[2][0] * m.elements[3][3] - m.elements[3][0] * m.elements[2][3];
+	f32 coef14 = m.elements[1][0] * m.elements[3][3] - m.elements[3][0] * m.elements[1][3];
+	f32 coef15 = m.elements[1][0] * m.elements[2][3] - m.elements[2][0] * m.elements[1][3];
+	f32 coef16 = m.elements[2][0] * m.elements[3][2] - m.elements[3][0] * m.elements[2][2];
+	f32 coef18 = m.elements[1][0] * m.elements[3][2] - m.elements[3][0] * m.elements[1][2];
+	f32 coef19 = m.elements[1][0] * m.elements[2][2] - m.elements[2][0] * m.elements[1][2];
+	f32 coef20 = m.elements[2][0] * m.elements[3][1] - m.elements[3][0] * m.elements[2][1];
+	f32 coef22 = m.elements[1][0] * m.elements[3][1] - m.elements[3][0] * m.elements[1][1];
+	f32 coef23 = m.elements[1][0] * m.elements[2][1] - m.elements[2][0] * m.elements[1][1];
+
+	vec4 fac0 = { coef00, coef00, coef02, coef03 };
+	vec4 fac1 = { coef04, coef04, coef06, coef07 };
+	vec4 fac2 = { coef08, coef08, coef10, coef11 };
+	vec4 fac3 = { coef12, coef12, coef14, coef15 };
+	vec4 fac4 = { coef16, coef16, coef18, coef19 };
+	vec4 fac5 = { coef20, coef20, coef22, coef23 };
+
+	vec4 vec0 = { m.elements[1][0], m.elements[0][0], m.elements[0][0], m.elements[0][0] };
+	vec4 vec1 = { m.elements[1][1], m.elements[0][1], m.elements[0][1], m.elements[0][1] };
+	vec4 vec2 = { m.elements[1][2], m.elements[0][2], m.elements[0][2], m.elements[0][2] };
+	vec4 vec3 = { m.elements[1][3], m.elements[0][3], m.elements[0][3], m.elements[0][3] };
+
+	vec4 inv0 = Vec4Add(Vec4Minus(Vec4Multiply(vec1, fac0), Vec4Multiply(vec2, fac1)), Vec4Multiply(vec3, fac2));
+	vec4 inv1 = Vec4Add(Vec4Minus(Vec4Multiply(vec0, fac0), Vec4Multiply(vec2, fac3)), Vec4Multiply(vec3, fac4));
+	vec4 inv2 = Vec4Add(Vec4Minus(Vec4Multiply(vec0, fac1), Vec4Multiply(vec1, fac3)), Vec4Multiply(vec3, fac5));
+	vec4 inv3 = Vec4Add(Vec4Minus(Vec4Multiply(vec0, fac2), Vec4Multiply(vec1, fac4)), Vec4Multiply(vec2, fac5));
+
+	vec4 sign_a = { +1, -1, +1, -1 };
+	vec4 sign_b = { -1, +1, -1, +1 };
+
+	mat4 inverse;
+	for (u32 i = 0; i < 4; ++i) {
+		inverse.elements[0][i] = inv0.elements[i] * sign_a.elements[i];
+		inverse.elements[1][i] = inv1.elements[i] * sign_b.elements[i];
+		inverse.elements[2][i] = inv2.elements[i] * sign_a.elements[i];
+		inverse.elements[3][i] = inv3.elements[i] * sign_b.elements[i];
+	}
+
+	vec4 row0 = { inverse.elements[0][0], inverse.elements[1][0], inverse.elements[2][0], inverse.elements[3][0] };
+	vec4 m0 = { m.elements[0][0], m.elements[0][1], m.elements[0][2], m.elements[0][3] };
+	vec4 dot0 = Vec4Multiply(m0, row0);
+	f32 dot1 = (dot0.x + dot0.y) + (dot0.z + dot0.w);
+
+	f32 one_over_determinant = 1 / dot1;
+
+	return Mat4MultiplyFloat(inverse, one_over_determinant);
+}
+
+inline mat4 Mat4Transpose(mat4 m)
+{
+	mat4 result;
+	for (s32 j = 0; j < 4; ++j) {
+		for (s32 i = 0; i < 4; ++i) {
+			result.elements[i][j] = m.elements[j][i];
+		}
+	}
+	return result;
+}
+
+inline mat4 Mat4InverseTranspose(mat4 m)
+{
+	mat4 result;
+	result = Mat4Inverse(m);
+	result = Mat4Transpose(m);
 	return result;
 }
 

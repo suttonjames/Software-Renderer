@@ -66,7 +66,7 @@ Image* ReadFromTGA(const char* file_name)
 	return image;
 }
 
-vec3 GetColour(Image *image, int x, int y)
+static vec3 GetColour(Image *image, int x, int y)
 {
 	s32 channels = image->channels;
 	vec3 color;
@@ -80,4 +80,11 @@ vec3 GetColour(Image *image, int x, int y)
 	color.r = pixel[2];
 
 	return color;
+}
+
+vec3 SampleTexture(Image *texture, vec2 texcoord)
+{
+	float x = (s32)(texcoord.x * (texture->width - 1) + 0.5f);
+	float y = (s32)(texcoord.y * (texture->height - 1) + 0.5f);
+	GetColour(texture, y, x);
 }
