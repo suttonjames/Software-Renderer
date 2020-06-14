@@ -367,10 +367,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	HDC device_context = GetDC(window);
 
-	Model *model = LoadModel("src/african_head.obj");
-	Image *diffuse_map = ReadFromTGA("src/african_head_diffuse.tga");
-	Image *normal_map = ReadFromTGA("src/african_head_nm.tga");
-	Image *specular_map = ReadFromTGA("src/african_head_spec.tga");
+	Model *model = LoadModel("assets/african_head.obj");
+	Image *diffuse_map = ReadFromTGA("assets/african_head_diffuse.tga");
+	Image *normal_map = ReadFromTGA("assets/african_head_nm.tga");
+	Image *specular_map = ReadFromTGA("assets/african_head_spec.tga");
 
 	vec3 eye = Vec3f(1.0f, 1.0f, 3.0f);
 	vec3 centre = Vec3f(0.0f, 0.0f, 0.0f);
